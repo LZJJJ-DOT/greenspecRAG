@@ -1,0 +1,26 @@
+# Evaluation is isolated from the CUDA retrieval image: RAGAS' evolving
+# LangChain dependencies must never modify the serving API's retrieval stack.
+FROM nvidia/cuda:12.1.1-base-ubuntu22.04
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends python3 python3-pip python-is-python3 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Answer Relevancy uses the frozen local BGE model on CPU. Pin the CPU wheel
+# so the isolated evaluator does not pull unused CUDA 13 packages.
+COPY pyproject.toml README.md ./
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch==2.6.0+cpu" && \
+    python -m pip install ".[ragas-eval]" && \
+    python -c "import ragas; from ragas.llms import llm_factory; from ragas.metrics.collections import ContextPrecision, ContextRecall, ContextRelevance; print(ragas.__version__)"
+
+COPY deploy/run_ragas_retrieval_trial.py ./deploy/run_ragas_retrieval_trial.py
+COPY deploy/run_ragas_answer_trial.py ./deploy/run_ragas_answer_trial.py
+
+CMD ["python", "-m", "deploy.run_ragas_retrieval_trial"]

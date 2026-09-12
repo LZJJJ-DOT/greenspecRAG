@@ -1,0 +1,500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greenspec.local/schemas/evidence_pack.schema.json",
+  "title": "GreenSpec Evidence Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_pack_id",
+    "retrieval_run_id",
+    "index_manifest_id",
+    "query",
+    "items",
+    "groups",
+    "citations",
+    "warnings",
+    "needs_manual_review",
+    "missing_facts",
+    "degraded_modes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "evidence_pack.v1"
+    },
+    "evidence_pack_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "request_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "retrieval_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "index_manifest_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "query": {
+      "type": "string",
+      "minLength": 1
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceItem"
+      }
+    },
+    "groups": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "properties": {
+        "primary_normative": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "supporting_table_formula": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "version_relation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "project_facts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "primary_normative",
+        "supporting_table_formula",
+        "version_relation",
+        "project_facts",
+        "policy"
+      ]
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/citation"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
+    },
+    "needs_manual_review": {
+      "type": "boolean"
+    },
+    "missing_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/missingFact"
+      }
+    },
+    "degraded_modes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "bm25_only",
+          "dense_unavailable",
+          "reranker_unavailable",
+          "qdrant_unavailable",
+          "embedding_unavailable",
+          "reranker_timeout",
+          "index_manifest_stale",
+          "mock_retrieval"
+        ]
+      }
+    },
+    "filters_applied": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "context_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_estimated_tokens",
+        "estimated_tokens",
+        "estimation",
+        "primary_item_limit",
+        "input_item_count",
+        "selected_item_count",
+        "omitted_by_primary_limit_evidence_ids",
+        "omitted_for_budget_evidence_ids"
+      ],
+      "properties": {
+        "max_estimated_tokens": {"type": "integer", "minimum": 1},
+        "estimated_tokens": {"type": "integer", "minimum": 0},
+        "estimation": {"type": "string", "minLength": 1},
+        "primary_item_limit": {"type": "integer", "minimum": 1},
+        "input_item_count": {"type": "integer", "minimum": 0},
+        "selected_item_count": {"type": "integer", "minimum": 0},
+        "omitted_by_primary_limit_evidence_ids": {"type": "array", "items": {"type": "string"}},
+        "omitted_for_budget_evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "$defs": {
+    "evidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "clause_id",
+        "parent_id",
+        "content_type",
+        "text",
+        "parent_context",
+        "standard_id",
+        "standard_name",
+        "standard_version",
+        "clause_no",
+        "pdf_page_start",
+        "pdf_page_end",
+        "printed_page_start",
+        "printed_page_end",
+        "source_file",
+        "source_sha256",
+        "verification_status",
+        "missing_facts",
+        "bm25_rank",
+        "dense_rank",
+        "rrf_score",
+        "rerank_score"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable evidence key; MUST equal clause_id for this protocol."
+        },
+        "clause_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_type": {
+          "enum": [
+            "publication_info",
+            "reference_standards",
+            "toc",
+            "normative_front_matter",
+            "normative_body",
+            "normative_clause",
+            "normative_table",
+            "normative_formula",
+            "appendix",
+            "appendix_clause",
+            "commentary_front_matter",
+            "commentary",
+            "commentary_clause",
+            "commentary_table",
+            "commentary_formula",
+            "commentary_appendix",
+            "figure",
+            "non_content"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_context": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "standard_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "standard_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "standard_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "clause_no": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pdf_page_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "pdf_page_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "printed_page_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "printed_page_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "source_file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verification_status": {
+          "enum": [
+            "verified",
+            "needs_manual_review",
+            "source_unverified"
+          ]
+        },
+        "missing_facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/missingFact"
+          }
+        },
+        "table_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "formula_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bm25_rank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "dense_rank": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "rrf_score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "rerank_score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "trace": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "standard_number",
+        "standard_name",
+        "standard_version",
+        "clause_no",
+        "pdf_page_start",
+        "pdf_page_end"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_number": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clause_no": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pdf_page_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "pdf_page_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "printed_page_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "printed_page_end": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "table_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "formula_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "severity"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "missingFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact",
+        "reason"
+      ],
+      "properties": {
+        "fact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_for": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greenspec.local/schemas/standard.schema.json",
+  "title": "GreenSpec standard registry entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "standard_id", "standard_number", "standard_name", "standard_version", "publication_date", "effective_date", "status", "region", "authority_level", "source_level", "source_file", "source_sha256", "relation_verification_status", "extraction_status", "extracted_clause_count", "provenance"],
+  "properties": {
+    "schema_version": {"const": "standard.v1"},
+    "standard_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "standard_number": {"type": "string", "minLength": 1},
+    "standard_name": {"type": "string", "minLength": 1},
+    "standard_version": {"type": "string", "minLength": 1},
+    "publication_date": {"type": ["string", "null"], "format": "date"},
+    "effective_date": {"type": ["string", "null"], "format": "date"},
+    "status": {"enum": ["current", "superseded", "partially_superseded", "pending_manual_review", "draft", "unknown"]},
+    "region": {"type": ["string", "null"]},
+    "authority_level": {"enum": ["national", "industry", "local", "project", "unknown"]},
+    "source_level": {"enum": ["T0", "T0_CANDIDATE", "T1", "T2", "T3", "PROJECT"]},
+    "source_file": {"type": ["string", "null"]},
+    "source_sha256": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"},
+    "relation_verification_status": {"enum": ["verified", "pending_manual_review", "rejected", "unknown"]},
+    "extraction_status": {"enum": ["not_started", "in_progress", "complete", "failed", "pending_manual_review"]},
+    "extracted_clause_count": {"type": "integer", "minimum": 0},
+    "pending_review_reason": {"type": ["string", "null"]},
+    "provenance": {"type": "object", "required": ["registry_version"], "properties": {"registry_version": {"type": "string"}, "registered_by": {"type": ["string", "null"]}, "registered_at": {"type": ["string", "null"], "format": "date-time"}}, "additionalProperties": true},
+    "notes": {"type": ["string", "null"]}
+  },
+  "allOf": [{"if": {"properties": {"status": {"const": "pending_manual_review"}}}, "then": {"required": ["pending_review_reason"]}}]
+}

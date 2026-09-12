@@ -1,0 +1,341 @@
+openapi: 3.1.0
+info:
+  title: GreenSpec RAG sidecar API
+  version: 0.1.0
+  description: >-
+    Frozen Day 1 contract. The service returns auditable evidence only; it
+    does not make applicability, risk, or final compliance decisions.
+servers:
+  - url: http://127.0.0.1:8787
+paths:
+  /v1/retrieve:
+    post:
+      operationId: retrieveEvidence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetrieveRequest'
+      responses:
+        '200':
+          description: Evidence Pack, including warnings and any permitted degraded modes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetrieveResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /v1/index/build:
+    post:
+      operationId: startIndexBuild
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IndexBuildRequest'
+      responses:
+        '202':
+          description: Build accepted. It is not active until status becomes succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexBuildAccepted'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/BuildConflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/DependencyUnavailable'
+  /v1/index/build/{build_id}:
+    get:
+      operationId: getIndexBuild
+      parameters:
+        - $ref: '#/components/parameters/BuildId'
+      responses:
+        '200':
+          description: Current build status and final manifest when available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexBuildStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Liveness and readiness status. HTTP 200 means all required dependencies are ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Process is live but one or more required dependencies are not ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+components:
+  parameters:
+    BuildId:
+      name: build_id
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+  responses:
+    BadRequest:
+      description: Request shape or mutually exclusive parameters are invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnprocessableEntity:
+      description: Query parsing or request validation failed without a safe interpretation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    DependencyUnavailable:
+      description: Required dependency is unavailable. Retryable unless details say otherwise.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BuildConflict:
+      description: Another build owns the active build lock.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Build ID does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    RetrieveRequest:
+      type: object
+      additionalProperties: false
+      required: [query, project_profile, filters, top_k, allow_degraded]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        project_profile:
+          type: object
+          additionalProperties: true
+          description: Project facts supplied by GreenSpec. Unknown facts are not inferred.
+        filters:
+          $ref: '#/components/schemas/RetrieveFilters'
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+        allow_degraded:
+          type: boolean
+          default: false
+    RetrieveFilters:
+      type: object
+      additionalProperties: false
+      required: [standard_ids, clause_nos, as_of_date, must_be_current, include_commentary]
+      properties:
+        standard_ids:
+          type: array
+          items: {type: string}
+        clause_nos:
+          type: array
+          items: {type: string}
+        as_of_date:
+          type: [string, 'null']
+          format: date
+        must_be_current:
+          type: boolean
+          default: false
+        include_commentary:
+          type: boolean
+          default: false
+    RetrieveResponse:
+      type: object
+      additionalProperties: false
+      required: [request_id, retrieval_run_id, index_manifest_id, items, filters_applied, warnings, degraded_modes]
+      properties:
+        request_id: {type: string}
+        retrieval_run_id: {type: string}
+        index_manifest_id: {type: [string, 'null']}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/RetrieveItem'}
+        filters_applied: {type: object, additionalProperties: true}
+        warnings:
+          type: array
+          items: {$ref: '#/components/schemas/Warning'}
+        degraded_modes:
+          type: array
+          items: {$ref: '#/components/schemas/DegradedMode'}
+        evidence_pack:
+          type: object
+          description: >-
+            Present for full-hybrid retrieval. This is the persisted,
+            schema-validated evidence_pack.v1 artifact; downstream report
+            agents should consume it rather than reconstruct citations from
+            the ranked-list response.
+          additionalProperties: true
+    RetrieveItem:
+      type: object
+      additionalProperties: false
+      required: [evidence_id, clause_id, parent_id, content_type, text, parent_context, standard_id, standard_name, standard_version, clause_no, pdf_page_start, pdf_page_end, printed_page_start, printed_page_end, source_file, source_sha256, verification_status, missing_facts, bm25_rank, dense_rank, rrf_score, rerank_score]
+      properties:
+        evidence_id:
+          type: string
+          description: Stable evidence key; MUST equal clause_id.
+        clause_id: {type: string}
+        parent_id: {type: [string, 'null']}
+        content_type:
+          type: string
+          enum: [publication_info, reference_standards, toc, normative_front_matter, normative_body, normative_clause, normative_table, normative_formula, appendix, appendix_clause, commentary_front_matter, commentary, commentary_clause, commentary_table, commentary_formula, commentary_appendix, figure, non_content]
+        text: {type: string}
+        parent_context:
+          type: array
+          items: {type: object, additionalProperties: true}
+        standard_id: {type: [string, 'null']}
+        standard_name: {type: [string, 'null']}
+        standard_version: {type: [string, 'null']}
+        clause_no: {type: [string, 'null']}
+        pdf_page_start: {type: [integer, 'null'], minimum: 1}
+        pdf_page_end: {type: [integer, 'null'], minimum: 1}
+        printed_page_start: {type: [integer, 'null'], minimum: 1}
+        printed_page_end: {type: [integer, 'null'], minimum: 1}
+        source_file: {type: [string, 'null']}
+        source_sha256: {type: [string, 'null']}
+        verification_status: {enum: [verified, needs_manual_review, source_unverified]}
+        missing_facts:
+          type: array
+          items: {$ref: '#/components/schemas/MissingFact'}
+        bm25_rank: {type: [integer, 'null'], minimum: 1}
+        dense_rank: {type: [integer, 'null'], minimum: 1}
+        rrf_score: {type: [number, 'null']}
+        rerank_score: {type: [number, 'null']}
+        table_id: {type: [string, 'null']}
+        formula_id: {type: [string, 'null']}
+        trace: {type: object, additionalProperties: true}
+    IndexBuildRequest:
+      type: object
+      additionalProperties: false
+      required: [source_manifest_id, rebuild, dry_run]
+      properties:
+        source_manifest_id: {type: string, minLength: 1}
+        rebuild: {type: boolean, default: false}
+        dry_run: {type: boolean, default: false}
+    IndexBuildAccepted:
+      type: object
+      additionalProperties: false
+      required: [request_id, build_id, status, accepted_at]
+      properties:
+        request_id: {type: string}
+        build_id: {type: string}
+        status: {const: accepted}
+        accepted_at: {type: string, format: date-time}
+    IndexBuildStatus:
+      type: object
+      additionalProperties: false
+      required: [request_id, build_id, status, source_manifest_id, extraction_run_id, index_manifest_id, failure, warnings]
+      properties:
+        request_id: {type: string}
+        build_id: {type: string}
+        status: {enum: [queued, running, succeeded, failed, cancelled]}
+        source_manifest_id: {type: string}
+        extraction_run_id: {type: [string, 'null']}
+        index_manifest_id: {type: [string, 'null']}
+        failure: {$ref: '#/components/schemas/BuildFailure'}
+        warnings:
+          type: array
+          items: {$ref: '#/components/schemas/Warning'}
+    BuildFailure:
+      type: [object, 'null']
+      additionalProperties: false
+      required: [code, message, retryable]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        retryable: {type: boolean}
+        details: {type: object, additionalProperties: true}
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [service, version, live, ready, active_index_manifest_id, dependencies, warnings]
+      properties:
+        service: {const: greenspec-rag}
+        version: {type: string}
+        live: {type: boolean}
+        ready: {type: boolean}
+        active_index_manifest_id: {type: [string, 'null']}
+        dependencies:
+          type: object
+          additionalProperties: false
+          required: [sqlite, qdrant, embedding, reranker]
+          properties:
+            sqlite: {$ref: '#/components/schemas/DependencyStatus'}
+            qdrant: {$ref: '#/components/schemas/DependencyStatus'}
+            embedding: {$ref: '#/components/schemas/DependencyStatus'}
+            reranker: {$ref: '#/components/schemas/DependencyStatus'}
+        warnings:
+          type: array
+          items: {$ref: '#/components/schemas/Warning'}
+    DependencyStatus:
+      type: object
+      additionalProperties: false
+      required: [status, message]
+      properties:
+        status: {enum: [ready, unavailable, degraded, disabled]}
+        message: {type: string}
+        version: {type: [string, 'null']}
+        details: {type: object, additionalProperties: true}
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id, retryable, details]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            request_id: {type: string}
+            retryable: {type: boolean}
+            details: {type: object, additionalProperties: true}
+    Warning:
+      type: object
+      additionalProperties: false
+      required: [code, message, severity]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        severity: {enum: [info, warning, error]}
+        evidence_ids: {type: array, items: {type: string}}
+    MissingFact:
+      type: object
+      additionalProperties: false
+      required: [fact, reason]
+      properties:
+        fact: {type: string}
+        reason: {type: string}
+        required_for: {type: array, items: {type: string}}
+    DegradedMode:
+      type: string
+      enum: [bm25_only, dense_unavailable, reranker_unavailable, qdrant_unavailable, embedding_unavailable, reranker_timeout, index_manifest_stale, mock_retrieval]

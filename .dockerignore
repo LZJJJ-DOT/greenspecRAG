@@ -1,0 +1,10 @@
+.git
+.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.env
+data/raw/
+data/index/
+runtime/

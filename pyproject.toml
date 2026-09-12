@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greenspec-rag-protocol"
+version = "0.1.0"
+description = "GreenSpec RAG Day 1 protocol and compatibility adapter"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+ragas-eval = [
+  "ragas==0.4.3",
+  "openai>=1.0",
+  # RAGAS 0.4.3 imports the pre-1.0 VertexAI community adapter. Pin the
+  # LangChain family below 0.4 until RAGAS releases a compatible import path.
+  "langchain<0.4",
+  "langchain-core<0.4",
+  "langchain-community==0.3.31",
+  "langchain-openai<0.4",
+  "sentence-transformers==3.3.1"
+]
+
+[tool.setuptools.packages.find]
+include = ["greenspec_rag*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

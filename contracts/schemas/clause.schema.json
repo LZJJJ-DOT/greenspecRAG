@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greenspec.local/schemas/clause.schema.json",
+  "title": "GreenSpec canonical clause.v1",
+  "description": "One UTF-8 JSONL node. Canonical JSONL is the rebuildable source of truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "clause_id",
+    "parent_id",
+    "document_id",
+    "standard_id",
+    "standard_name",
+    "standard_version",
+    "source_file",
+    "source_sha256",
+    "document_status",
+    "content_type",
+    "clause_type",
+    "clause_no",
+    "clause_title",
+    "hierarchy",
+    "text",
+    "retrieval_text",
+    "region",
+    "building_type",
+    "design_phase",
+    "green_target_scope",
+    "requires_project_facts",
+    "requires_calculation",
+    "requires_manual_review",
+    "pdf_page_start",
+    "pdf_page_end",
+    "printed_page_start",
+    "printed_page_end",
+    "source_level",
+    "verification_status",
+    "indexable",
+    "table_id",
+    "formula_id",
+    "asset_ids",
+    "supersession_ids",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "clause.v1"
+    },
+    "clause_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"
+    },
+    "parent_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"
+    },
+    "document_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "standard_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "standard_name": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "standard_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "source_file": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "source_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "document_status": {
+      "enum": [
+        "current",
+        "superseded",
+        "partially_superseded",
+        "pending_manual_review"
+      ]
+    },
+    "content_type": {
+      "enum": [
+        "publication_info",
+        "reference_standards",
+        "toc",
+        "normative_front_matter",
+        "normative_body",
+        "normative_clause",
+        "normative_table",
+        "normative_formula",
+        "appendix",
+        "appendix_clause",
+        "commentary_front_matter",
+        "commentary",
+        "commentary_clause",
+        "commentary_table",
+        "commentary_formula",
+        "commentary_appendix",
+        "figure",
+        "non_content"
+      ]
+    },
+    "clause_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "clause_no": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "clause_title": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "hierarchy": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "retrieval_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "region": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "building_type": {
+      "type": [
+        "string",
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "design_phase": {
+      "type": [
+        "string",
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "green_target_scope": {
+      "type": [
+        "string",
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "requires_project_facts": {
+      "type": "boolean"
+    },
+    "requires_calculation": {
+      "type": "boolean"
+    },
+    "requires_manual_review": {
+      "type": "boolean"
+    },
+    "pdf_page_start": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "pdf_page_end": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "printed_page_start": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "printed_page_end": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "source_level": {
+      "enum": [
+        "T0",
+        "T0_CANDIDATE",
+        "T1",
+        "T2",
+        "T3",
+        "PROJECT"
+      ]
+    },
+    "verification_status": {
+      "enum": [
+        "verified",
+        "needs_manual_review",
+        "source_unverified"
+      ]
+    },
+    "indexable": {
+      "type": "boolean"
+    },
+    "table_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "formula_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "asset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supersession_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "adapter",
+        "adapter_version"
+      ],
+      "properties": {
+        "adapter": {
+          "type": "string"
+        },
+        "adapter_version": {
+          "type": "string"
+        },
+        "extraction_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_manifest_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "legacy_clause_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "applicability_results": {},
+    "risk_register": {},
+    "evidence_verification": {},
+    "legacy_compat": {
+      "type": "object",
+      "properties": {
+        "applicability_results": {},
+        "risk_register": {},
+        "evidence_verification": {}
+      },
+      "additionalProperties": true
+    },
+    "legacy_extra": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "clause_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "content_type": {
+            "pattern": "^commentary"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "indexable": {
+            "const": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "normative_table",
+              "commentary_table"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "table_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "content_type": {
+            "enum": [
+              "normative_formula",
+              "commentary_formula"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "formula_id"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greenspec.local/schemas/clause_relation.schema.json",
+  "title": "GreenSpec clause relation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "relation_id", "from_clause_id", "to_clause_id", "relation_type", "scope", "status", "effective_date", "evidence_ids", "reviewer", "provenance"],
+  "properties": {
+    "schema_version": {"const": "clause_relation.v1"},
+    "relation_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$"},
+    "from_clause_id": {"type": "string", "minLength": 1},
+    "to_clause_id": {"type": "string", "minLength": 1},
+    "relation_type": {"enum": ["supersedes", "superseded_by", "replaces", "amends", "references", "implements", "conflicts_with", "partially_supersedes", "unknown"]},
+    "scope": {"type": ["string", "null"]},
+    "status": {"enum": ["verified", "pending_manual_review", "rejected"]},
+    "effective_date": {"type": ["string", "null"], "format": "date"},
+    "evidence_ids": {"type": "array", "items": {"type": "string"}},
+    "reviewer": {"type": ["string", "null"]},
+    "reviewed_at": {"type": ["string", "null"], "format": "date-time"},
+    "notes": {"type": ["string", "null"]},
+    "provenance": {"type": "object", "required": ["registry_version"], "properties": {"registry_version": {"type": "string"}, "source_file": {"type": ["string", "null"]}, "source_sha256": {"type": ["string", "null"]}}, "additionalProperties": true}
+  },
+  "allOf": [{"if": {"properties": {"status": {"const": "pending_manual_review"}}}, "then": {"properties": {"reviewer": {"const": null}}}}]
+}

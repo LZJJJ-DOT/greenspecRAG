@@ -1,0 +1,109 @@
+name: greenspec-rag
+
+x-runtime-image: &runtime-image
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: greenspec-rag-runtime:cuda12.1
+  environment:
+    HF_HOME: /models/.cache/huggingface
+    TRANSFORMERS_CACHE: /models/.cache/huggingface/transformers
+  volumes:
+    - ${RAG_RUNTIME_ROOT:?Set RAG_RUNTIME_ROOT in .env}/models:/models
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${QDRANT_HTTP_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      # Docker-managed volume avoids Qdrant vector corruption observed with a
+      # Windows host bind mount.  The old host directory is deliberately not
+      # mounted or deleted, so quarantined collections remain recoverable.
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__LOG_LEVEL: INFO
+    mem_limit: 2g
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/6333'"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  model-download:
+    <<: *runtime-image
+    profiles: ["setup"]
+    command: ["python", "deploy/download_models.py"]
+    environment:
+      HF_HOME: /models/.cache/huggingface
+      TRANSFORMERS_CACHE: /models/.cache/huggingface/transformers
+      MODEL_BGE_REVISION: ${MODEL_BGE_REVISION:-main}
+      MODEL_RERANKER_REVISION: ${MODEL_RERANKER_REVISION:-main}
+
+  gpu-diagnostics:
+    <<: *runtime-image
+    profiles: ["diagnostics"]
+    command: ["python", "deploy/verify_runtime.py"]
+    gpus: all
+
+  rag-api:
+    <<: *runtime-image
+    command: ["uvicorn", "greenspec_rag.api:app", "--host", "0.0.0.0", "--port", "8787"]
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - .:/app
+      - ${RAG_RUNTIME_ROOT:?Set RAG_RUNTIME_ROOT in .env}/models:/models
+    environment:
+      HF_HOME: /models/.cache/huggingface
+      TRANSFORMERS_CACHE: /models/.cache/huggingface/transformers
+      RAG_QDRANT_URL: http://qdrant:6333
+      RAG_BGE_MODEL_PATH: /models/bge-base-zh-v1.5
+      RAG_RERANKER_MODEL_PATH: /models/bge-reranker-v2-m3
+      # RRF/diversity candidates scored before returning request top_k.
+      RAG_RERANK_CANDIDATE_LIMIT: ${RAG_RERANK_CANDIDATE_LIMIT:-30}
+      RAG_RERANK_TIMEOUT_SECONDS: ${RAG_RERANK_TIMEOUT_SECONDS:-60}
+      # Approximate downstream context budget; citations stay with selected items.
+      RAG_EVIDENCE_PACK_MAX_TOKENS: ${RAG_EVIDENCE_PACK_MAX_TOKENS:-5000}
+      RAG_EVIDENCE_PACK_PRIMARY_LIMIT: ${RAG_EVIDENCE_PACK_PRIMARY_LIMIT:-8}
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    gpus: all
+
+  # One-shot evaluator: this is the only service that receives the external
+  # LLM secret. The serving RAG API remains independent of DeepSeek/RAGAS.
+  ragas-eval:
+    build:
+      context: .
+      dockerfile: Dockerfile.ragas
+    image: greenspec-rag-evaluator:ragas-0.4.3
+    profiles: ["evaluation"]
+    command: ["python", "-m", "deploy.run_ragas_retrieval_trial"]
+    working_dir: /app
+    volumes:
+      - .:/app
+      - ${RAG_RUNTIME_ROOT:?Set RAG_RUNTIME_ROOT in .env}/models:/models:ro
+    environment:
+      # Each evaluator script validates the provider key it actually uses.
+      # Keep both optional here so a frozen-answer Qwen judge run does not
+      # require a DeepSeek key, and vice versa.
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      RAGAS_ANSWER_PROVIDER: ${RAGAS_ANSWER_PROVIDER:-deepseek}
+      RAGAS_ANSWER_BASE_URL: ${RAGAS_ANSWER_BASE_URL:-https://api.deepseek.com}
+      RAGAS_ANSWER_API_KEY_ENV: ${RAGAS_ANSWER_API_KEY_ENV:-DEEPSEEK_API_KEY}
+      RAGAS_JUDGE_PROVIDER: ${RAGAS_JUDGE_PROVIDER:-deepseek}
+      RAGAS_JUDGE_BASE_URL: ${RAGAS_JUDGE_BASE_URL:-https://api.deepseek.com}
+      RAGAS_JUDGE_MODEL: ${RAGAS_JUDGE_MODEL:-deepseek-v4-flash}
+      RAGAS_JUDGE_API_KEY_ENV: ${RAGAS_JUDGE_API_KEY_ENV:-DEEPSEEK_API_KEY}
+      HF_HOME: /models/.cache/huggingface
+      TRANSFORMERS_CACHE: /models/.cache/huggingface/transformers
+
+volumes:
+  qdrant_data:
+    name: greenspec-rag-qdrant-data
