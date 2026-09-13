@@ -21,7 +21,7 @@ BGE Top50 ──┘
         ↓
 EvidencePack（主证据 + 必需依赖 + 引用定位，默认预算 5000 tokens）
         ↓
-gpt-researcher / 其他下游 Agent
+greenspec / 其他下游 Agent
 ```
 
 关键设计：
@@ -84,7 +84,7 @@ Faithfulness 衡量答案声明能否由当前检索上下文推出；Answer Rel
 
 ### Agent 端到端验证
 
-GreenSpec 作为外接知识库接入 `gpt-researcher` 后，在一次真实北京办公建筑绿色建筑预审任务中：
+GreenSpec 作为外接知识库接入 `greenspec` 后，在一次真实北京办公建筑绿色建筑预审任务中：
 
 - 端到端确定性检查 **10/10 PASS**；
 - 返回本地规范证据 12 条、WebEvidenceLedger 联网证据 4 条；
